@@ -29,8 +29,8 @@ kernel void scan_kernel(__global uint* input, __global uint* output, int size) {
     }
 }
 
-// 3. Normalize the cumulative histogram into LUT
-kernel void normalize_kernel(__global uint* cum_hist, __global uchar* lut, int size, int total_pixels) {
+// 3. Normalise the cumulative histogram into LUT
+kernel void normalise_kernel(__global uint* cum_hist, __global uchar* lut, int size, int total_pixels) {
     int id = get_global_id(0);
     if (id >= size) return;
 

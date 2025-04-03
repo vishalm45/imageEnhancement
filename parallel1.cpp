@@ -1,5 +1,3 @@
-// ========== Tutorial 3.cpp (Histogram Equalisation Host Code with Timing) ==========
-
 #include "CImg.h"
 #include <CL/opencl.hpp>
 #include <vector>
@@ -11,7 +9,7 @@
 using namespace cimg_library;
 using namespace std;
 
-// Helper function to get OpenCL event duration in milliseconds
+// helper function to get OpenCL event duration in milliseconds
 double getEventDurationMS(const cl::Event& event) {
     cl_ulong start = event.getProfilingInfo<CL_PROFILING_COMMAND_START>();
     cl_ulong end = event.getProfilingInfo<CL_PROFILING_COMMAND_END>();
@@ -21,14 +19,14 @@ double getEventDurationMS(const cl::Event& event) {
 int main() {
     auto start_total = chrono::high_resolution_clock::now();
 
-    // Load grayscale image (PGM format)
-    CImg<unsigned char> image("test_large.pgm"); // Replace with "test.pgm" for smaller image
+    // load grayscale image (pgm format)
+    CImg<unsigned char> image("test_large.pgm"); 
     int width = image.width(), height = image.height();
     int size = width * height;
     vector<unsigned char> input(image.data(), image.data() + size);
     vector<unsigned char> output(size);
 
-    // Setup OpenCL
+    // setup OpenCL
     vector<cl::Platform> platforms;
     cl::Platform::get(&platforms);
     cl::Platform platform = platforms.front();
@@ -48,19 +46,19 @@ int main() {
     program.build({ device });
     cl::CommandQueue queue(context, device, CL_QUEUE_PROFILING_ENABLE);
 
-    // Create OpenCL buffers (ensure correct byte sizes)
+    // create OpenCL buffers
     cl::Buffer buf_input(context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, sizeof(unsigned char) * size, input.data());
     cl::Buffer buf_output(context, CL_MEM_WRITE_ONLY, sizeof(unsigned char) * size);
     cl::Buffer buf_hist(context, CL_MEM_READ_WRITE, sizeof(cl_uint) * 256);
     cl::Buffer buf_scan(context, CL_MEM_READ_WRITE, sizeof(cl_uint) * 256);
     cl::Buffer buf_lut(context, CL_MEM_READ_WRITE, sizeof(cl_uchar) * 256);
 
-    // Zero-initialize histogram
+    // zero initialise histogram
     vector<cl_uint> hist_init(256, 0);
     cl::Event evt_write_hist;
     queue.enqueueWriteBuffer(buf_hist, CL_TRUE, 0, sizeof(cl_uint) * 256, hist_init.data(), nullptr, &evt_write_hist);
 
-    // Kernel 1: Histogram
+    // kernel 1: histogram
     cl::Event evt_hist;
     cl::Kernel histogram(program, "histogram_kernel");
     histogram.setArg(0, buf_input);
@@ -68,7 +66,7 @@ int main() {
     histogram.setArg(2, size);
     queue.enqueueNDRangeKernel(histogram, cl::NullRange, cl::NDRange(size), cl::NullRange, nullptr, &evt_hist);
 
-    // Kernel 2: Scan
+    // kernel 2: scan
     cl::Event evt_scan;
     cl::Kernel scan(program, "scan_kernel");
     scan.setArg(0, buf_hist);
@@ -76,16 +74,16 @@ int main() {
     scan.setArg(2, 256);
     queue.enqueueNDRangeKernel(scan, cl::NullRange, cl::NDRange(256), cl::NullRange, nullptr, &evt_scan);
 
-    // Kernel 3: Normalize cumulative histogram
+    // kernel 3: noramlise cumulative histogram
     cl::Event evt_norm;
-    cl::Kernel normalize(program, "normalize_kernel");
-    normalize.setArg(0, buf_scan);
-    normalize.setArg(1, buf_lut);
-    normalize.setArg(2, 256);
-    normalize.setArg(3, size);
-    queue.enqueueNDRangeKernel(normalize, cl::NullRange, cl::NDRange(256), cl::NullRange, nullptr, &evt_norm);
+    cl::Kernel normalise(program, "normalise_kernel");
+    normalise.setArg(0, buf_scan);
+    normalise.setArg(1, buf_lut);
+    normalise.setArg(2, 256);
+    normalise.setArg(3, size);
+    queue.enqueueNDRangeKernel(normalise, cl::NullRange, cl::NDRange(256), cl::NullRange, nullptr, &evt_norm);
 
-    // Kernel 4: Apply LUT to input image
+    // kernel 4: apply LUT to input image 
     cl::Event evt_apply;
     cl::Kernel apply(program, "apply_lut_kernel");
     apply.setArg(0, buf_input);
@@ -94,25 +92,25 @@ int main() {
     apply.setArg(3, size);
     queue.enqueueNDRangeKernel(apply, cl::NullRange, cl::NDRange(size), cl::NullRange, nullptr, &evt_apply);
 
-    // Read result
+    // read result
     cl::Event evt_read;
     queue.enqueueReadBuffer(buf_output, CL_TRUE, 0, sizeof(unsigned char) * size, output.data(), nullptr, &evt_read);
 
-    // Save result image
+    // save result image to .pgm
     CImg<unsigned char> result_image(output.data(), width, height, 1, 1);
     result_image.save("output_equalised.pgm");
 
-    // Total execution time
+    // total execution time
     auto end_total = chrono::high_resolution_clock::now();
     chrono::duration<double, milli> total_time = end_total - start_total;
 
-    // Output performance data
+    // output performance data
     cout << fixed << setprecision(3);
     cout << "\n--- Execution Times ---" << endl;
     cout << "Memory Transfer (init):  " << getEventDurationMS(evt_write_hist) << " ms" << endl;
     cout << "Histogram kernel:        " << getEventDurationMS(evt_hist) << " ms" << endl;
     cout << "Scan kernel:             " << getEventDurationMS(evt_scan) << " ms" << endl;
-    cout << "Normalize kernel:        " << getEventDurationMS(evt_norm) << " ms" << endl;
+    cout << "Normalise kernel:        " << getEventDurationMS(evt_norm) << " ms" << endl;
     cout << "Apply LUT kernel:        " << getEventDurationMS(evt_apply) << " ms" << endl;
     cout << "Read buffer (output):    " << getEventDurationMS(evt_read) << " ms" << endl;
     cout << "Total Program Time:      " << total_time.count() << " ms" << endl;

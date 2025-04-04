@@ -71,7 +71,7 @@ kernel void apply_lut_kernel(__global uchar* input, __global uchar* output, __gl
 }
 
 // 5. Apply 3 LUTs to RGB image
-kernel void apply_lut_kernel_color(__global uchar* input, __global uchar* output,
+kernel void apply_lut_kernel_colour(__global uchar* input, __global uchar* output,
     __global uchar* lut_r, __global uchar* lut_g, __global uchar* lut_b,
     int pixel_count) {
     int id = get_global_id(0);

@@ -31,7 +31,7 @@ int main(int argc, char* argv[]) {
     // Load image
     CImg<unsigned char> image("mdr16.ppm");
     int width = image.width(), height = image.height(), spectrum = image.spectrum();
-    bool is_color = (spectrum == 3);
+    bool is_colour = (spectrum == 3);
 
     const int num_bins = 256;
     int size = width * height;

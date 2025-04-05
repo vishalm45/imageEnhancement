@@ -35,7 +35,7 @@ int main(int argc, char* argv[]) {
     auto start_total = chrono::high_resolution_clock::now();  // Start timing
 
     // Load input image (grayscale or RGB)
-    CImg<unsigned char> image("test_large.pgm");
+    CImg<unsigned char> image("mdr16.ppm");
     int width = image.width(), height = image.height(), spectrum = image.spectrum();
     bool is_colour = (spectrum == 3);
 
@@ -118,21 +118,7 @@ int main(int argc, char* argv[]) {
     pair<int, int> minmax = find_min_max_bin(scan_result);
     int min_bin = minmax.first;
     int max_bin = minmax.second;
-
-    // Save histogram and cumulative histogram to CSV for plotting
-    ofstream csv("histogram_data.csv");
-    csv << "Bin,Histogram,Cumulative\n";
-
     vector<cl_uint> hist_result(num_bins);
-    queue.enqueueReadBuffer(buf_hist, CL_TRUE, 0, sizeof(cl_uint) * num_bins, hist_result.data());
-
-    cl_uint cumulative = 0;
-    for (int i = 0; i < num_bins; ++i) {
-        cumulative += hist_result[i];
-        csv << i << "," << hist_result[i] << "," << cumulative << "\n";
-    }
-    csv.close();
-    cout << "Histogram data saved to histogram_data.csv\n";
 
     // Run normalisation kernel to compute LUT from cumulative histogram
     cl::Kernel normalise(program, "normalise_kernel");

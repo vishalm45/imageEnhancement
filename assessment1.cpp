@@ -32,7 +32,7 @@ int main(int argc, char* argv[]) {
     }
 
     // Load input image (grayscale or RGB)
-    CImg<unsigned char> image("mdr16.ppm");
+    CImg<unsigned char> image("test_large.pgm");
     int width = image.width(), height = image.height(), spectrum = image.spectrum();
     bool is_colour = (spectrum == 3);
 
@@ -160,6 +160,7 @@ int main(int argc, char* argv[]) {
     } else {
     	apply.setArg(3, size);
     }
+
     queue.enqueueNDRangeKernel(apply, cl::NullRange, cl::NDRange(size), cl::NullRange, nullptr, &evt_apply);
 
     // Read back equalised image

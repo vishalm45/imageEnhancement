@@ -5,7 +5,7 @@ typedef unsigned char uchar;
 typedef unsigned int uint;
 
 // 1. Builds histogram using atomic increments in global memory
-kernel void histogram_kernel(__global uchar* input, __global uint* hist, int size) {
+kernel void histogram_kernel(__global uchar* input, __global uint* hist, int size, int num_bins) {
     int id = get_global_id(0);
     if (id < size) {
         atomic_inc(&hist[input[id]]);  // Thread-safe increment per bin
@@ -32,12 +32,7 @@ kernel void scan_kernel(__global uint* input, __global uint* output, int size) {
 }
 
 // 3. Normalises cumulative histogram into [0, 255] lookup table (LUT)
-kernel void normalise_kernel(__global uint* cum_hist,
-    __global uchar* lut,
-    int num_bins,
-    int total_pixels,
-    int min_bin,
-    int max_bin) {
+kernel void normalise_kernel(__global uint* cum_hist, __global uchar* lut, int num_bins, int total_pixels, int min_bin, int max_bin) {
     int id = get_global_id(0);
     if (id >= num_bins) return;
 

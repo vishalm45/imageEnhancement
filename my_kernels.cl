@@ -22,12 +22,15 @@ kernel void scan_kernel(__global uint* input, __global uint* output, int size) {
 
     // Hillis-Steele parallel scan loop (inclusive)
     for (int offset = 1; offset < size; offset <<= 1) {
-        uint val = 0;
-        if (id >= offset)
-            val = output[id - offset];
-        barrier(CLK_GLOBAL_MEM_FENCE);
-        output[id] += val;
-        barrier(CLK_GLOBAL_MEM_FENCE);
+        if (id < size) {
+            uint val = 0;
+            if (id >= offset) {
+                val = output[id - offset];
+            }
+            barrier(CLK_GLOBAL_MEM_FENCE);
+            output[id] += val;
+            barrier(CLK_GLOBAL_MEM_FENCE);
+        }
     }
 }
 
@@ -40,14 +43,14 @@ kernel void normalise_kernel(__global uint* cum_hist, __global uchar* lut, int n
     uint cdf_max = cum_hist[max_bin];
     uint cdf_val = cum_hist[id];
 
-    if (cdf_max == cdf_min) {
-        lut[id] = (uchar)id;  // No contrast: pass-through LUT
-        return;
+    float norm;
+    if (cdf_max > cdf_min) {
+        norm = (float)(cdf_val - cdf_min) / (float)(cdf_max - cdf_min); // Normalise to [0, 1]
+    } else {
+        norm = 0.0f; // Or handle differently based on your desired behavior
     }
-
-    float norm = (float)(cdf_val - cdf_min) / (float)(cdf_max - cdf_min);  // Normalise to [0, 1]
-    norm = fmax(0.0f, fmin(norm, 1.0f));  // Clamp
-    lut[id] = (uchar)(255.0f * norm + 0.5f);  // Convert to 8-bit
+    norm = fmax(0.0f, fmin(norm, 1.0f)); // Clamp
+    lut[id] = (uchar)(255.0f * norm + 0.5f); // Convert to 8-bit
 }
 
 // 4. Applies LUT to greyscale image (back-projection step)
@@ -57,7 +60,7 @@ kernel void apply_lut_kernel(__global uchar* input,
     int size) {
     int id = get_global_id(0);
     if (id < size) {
-        output[id] = lut[input[id]];  // Replace intensity using LUT
+        output[id] = lut[input[id]]; // Replace intensity using LUT
     }
 }
 
@@ -70,8 +73,8 @@ kernel void apply_lut_kernel_colour(__global uchar* input, __global uchar* outpu
         uchar r = input[3 * id + 0];
         uchar g = input[3 * id + 1];
         uchar b = input[3 * id + 2];
-        output[3 * id + 0] = lut_r[r];  // Red channel LUT
-        output[3 * id + 1] = lut_g[g];  // Green channel LUT
-        output[3 * id + 2] = lut_b[b];  // Blue channel LUT
+        output[3 * id + 0] = lut_r[r]; // Red channel LUT
+        output[3 * id + 1] = lut_g[g]; // Green channel LUT
+        output[3 * id + 2] = lut_b[b]; // Blue channel LUT
     }
 }
